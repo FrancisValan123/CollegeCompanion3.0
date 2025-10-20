@@ -1,0 +1,496 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-search me-2"></i>Lost & Found</h2>
+            <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#helpModal">
+                <i class="fas fa-question-circle me-1"></i>Upload Help
+            </button>
+        </div>
+        
+        <!-- Post Lost or Found Item Card -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Post Lost or Found Item</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('post_lost_found') }}" enctype="multipart/form-data" id="lostFoundForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Item Title *</label>
+                                <input type="text" class="form-control" id="title" name="title" placeholder="e.g., Black iPhone 12, Blue Backpack" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="type" class="form-label">Item Type *</label>
+                                <select class="form-select" id="type" name="type" required>
+                                    <option value="">Select Type</option>
+                                    <option value="lost">Lost Item</option>
+                                    <option value="found">Found Item</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Detailed Description *</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" 
+                                  placeholder="Describe the item in detail: color, brand, distinctive features, contents (if any)..." required></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="location" class="form-label">Location</label>
+                                <input type="text" class="form-control" id="location" name="location" 
+                                       placeholder="e.g., Library, Room 201, Cafeteria">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="date_occurred" class="form-label">Date Occurred</label>
+                                <input type="date" class="form-control" id="date_occurred" name="date_occurred">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- File Upload Section -->
+                    <div class="mb-3">
+                        <label for="item_images" class="form-label">Upload Images (Optional)</label>
+                        <input type="file" class="form-control" id="item_images" name="item_images" 
+                               accept="image/*" multiple onchange="previewImages()">
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Supported formats: JPG, PNG, GIF. Maximum 3 images, 5MB each
+                        </div>
+                    </div>
+                    
+                    <!-- Image Preview Section -->
+                    <div class="mb-3" id="imagePreviewContainer" style="display: none;">
+                        <label class="form-label">Image Previews:</label>
+                        <div class="row" id="imagePreviews">
+                            <!-- Image previews will be inserted here -->
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contact_info" class="form-label">Contact Information *</label>
+                        <input type="text" class="form-control" id="contact_info" name="contact_info" 
+                               placeholder="Your email, phone number, or room number" required>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="reset" class="btn btn-outline-secondary me-md-2">Clear Form</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-1"></i> Post Item
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Posts -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Recent Posts</h5>
+                    <span class="badge bg-primary">{{ posts|length }} items</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if posts %}
+                    <div class="row">
+                        {% for post in posts %}
+                        <div class="col-lg-6 mb-4">
+                            <div class="card h-100 border-{{ 'success' if post.is_resolved else 'warning' }} shadow-sm">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge bg-{{ 'success' if post.item_type == 'found' else 'warning' }} me-2">
+                                            {{ post.item_type|title }}
+                                        </span>
+                                        <strong>{{ post.title }}</strong>
+                                        {% if post.is_resolved %}
+                                        <span class="badge bg-success ms-2"><i class="fas fa-check me-1"></i>Resolved</span>
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">{{ post.posted_at.strftime('%m/%d/%Y') }}</small>
+                                </div>
+                                
+                                <!-- Image Gallery -->
+                                {% if post.images %}
+                                <div id="carousel{{ post.id }}" class="carousel slide" data-bs-ride="carousel">
+                                    <div class="carousel-inner">
+                                        {% for image in post.images %}
+                                        <div class="carousel-item {{ 'active' if loop.first }}">
+                                            <img src="{{ url_for('lost_found_image', filename=image.filename) }}" 
+                                                 class="d-block w-100" alt="{{ post.title }}" 
+                                                 style="height: 200px; object-fit: cover; cursor: pointer;"
+                                                 onclick="openImageModal(`{{ url_for('lost_found_image', filename=image.filename) }}`)">
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% if post.images|length > 1 %}
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#carousel{{ post.id }}" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Previous</span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#carousel{{ post.id }}" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Next</span>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                <div class="text-center py-4 bg-light">
+                                    <i class="fas fa-image fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted mb-0">No images available</p>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="card-body">
+                                    <p class="card-text">{{ post.description }}</p>
+                                    
+                                    <div class="item-details small text-muted mb-3">
+                                        {% if post.location %}
+                                        <div><i class="fas fa-map-marker-alt me-1"></i> {{ post.location }}</div>
+                                        {% endif %}
+                                        {% if post.date_occurred %}
+                                        <div><i class="fas fa-calendar me-1"></i> {{ post.date_occurred.strftime('%m/%d/%Y') }}</div>
+                                        {% endif %}
+                                        <div><i class="fas fa-user me-1"></i> {{ post.poster.name }}</div>
+                                    </div>
+                                    
+                                    <p class="card-text">
+                                        <strong><i class="fas fa-address-card me-1"></i>Contact:</strong> 
+                                        {{ post.contact_info }}
+                                    </p>
+                                    
+                                    {% if not post.is_resolved and (current_user.role == 'admin' or post.posted_by == current_user.id) %}
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ url_for('mark_resolved', post_id=post.id) }}" class="btn btn-sm btn-success">
+                                            <i class="fas fa-check me-1"></i>Mark Resolved
+                                        </a>
+                                        {% if current_user.role == 'admin' or post.posted_by == current_user.id %}
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                onclick="confirmDelete('{{ post.id }}')">
+                                            <i class="fas fa-trash me-1"></i>Delete
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No posts yet</h5>
+                    <p class="text-muted">Be the first to post a lost or found item!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="helpModalLabel"><i class="fas fa-question-circle me-2"></i>Upload Help</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6>Tips for Better Results:</h6>
+                <ul class="mb-3">
+                    <li>Upload clear, well-lit photos of the item</li>
+                    <li>Include multiple angles if possible</li>
+                    <li>Show any distinctive features or damage</li>
+                    <li>For found items, describe where and when you found it</li>
+                    <li>For lost items, provide last known location</li>
+                </ul>
+                
+                <h6>File Requirements:</h6>
+                <ul class="mb-0">
+                    <li>Supported formats: JPG, PNG, GIF</li>
+                    <li>Maximum 3 images per post</li>
+                    <li>Each image max 5MB</li>
+                    <li>Images are automatically resized for optimal display</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this post? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="#" id="deleteConfirmBtn" class="btn btn-danger">Delete Post</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Preview Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Image Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" alt="Preview" class="img-fluid">
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.carousel-control-prev, .carousel-control-next {
+    width: 5%;
+}
+
+.carousel-item img {
+    border-radius: 0;
+    transition: transform 0.2s ease;
+}
+
+.carousel-item img:hover {
+    transform: scale(1.02);
+}
+
+.image-preview-container {
+    position: relative;
+    display: inline-block;
+    margin: 5px;
+}
+
+.image-preview {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid #dee2e6;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #dc3545;
+    color: white;
+    border: none;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.remove-image-btn:hover {
+    background: #c82333;
+}
+
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.badge {
+    font-size: 0.7em;
+}
+
+.carousel-indicators {
+    bottom: -40px;
+}
+
+.carousel-indicators button {
+    background-color: #6c757d;
+}
+
+.carousel-indicators button.active {
+    background-color: #007bff;
+}
+</style>
+
+<script>
+function previewImages() {
+    const input = document.getElementById('item_images');
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    const previewsDiv = document.getElementById('imagePreviews');
+    
+    previewsDiv.innerHTML = '';
+    
+    if (input.files.length > 0) {
+        previewContainer.style.display = 'block';
+        
+        for (let i = 0; i < input.files.length; i++) {
+            const file = input.files[i];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const previewContainer = document.createElement('div');
+                previewContainer.className = 'col-auto image-preview-container';
+                
+                previewContainer.innerHTML = `
+                    <img src="${e.target.result}" class="image-preview" alt="Preview">
+                    <button type="button" class="remove-image-btn" onclick="removeImage(${i})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                previewsDiv.appendChild(previewContainer);
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    } else {
+        previewContainer.style.display = 'none';
+    }
+}
+
+function removeImage(index) {
+    const input = document.getElementById('item_images');
+    const files = Array.from(input.files);
+    files.splice(index, 1);
+    
+    // Create new FileList (simulated)
+    const dt = new DataTransfer();
+    files.forEach(file => dt.items.add(file));
+    input.files = dt.files;
+    
+    // Update preview
+    previewImages();
+}
+
+function confirmDelete(postId) {
+    const deleteBtn = document.getElementById('deleteConfirmBtn');
+    deleteBtn.href = "{{ url_for('delete_lost_found', post_id=0) }}".replace('0', postId);
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+function openImageModal(imageUrl) {
+    const modalImage = document.getElementById('modalImage');
+    modalImage.src = imageUrl;
+    new bootstrap.Modal(document.getElementById('imageModal')).show();
+}
+
+// Form validation
+document.getElementById('lostFoundForm').addEventListener('submit', function(e) {
+    const files = document.getElementById('item_images').files;
+    const title = document.getElementById('title').value.trim();
+    const description = document.getElementById('description').value.trim();
+    const contactInfo = document.getElementById('contact_info').value.trim();
+    
+    // Basic validation
+    if (!title) {
+        e.preventDefault();
+        alert('Please enter an item title.');
+        return;
+    }
+    
+    if (!description) {
+        e.preventDefault();
+        alert('Please enter a description.');
+        return;
+    }
+    
+    if (!contactInfo) {
+        e.preventDefault();
+        alert('Please enter contact information.');
+        return;
+    }
+    
+    // Check file sizes
+    for (let file of files) {
+        if (file.size > 5 * 1024 * 1024) {
+            e.preventDefault();
+            alert('File size too large: ' + file.name + '\nMaximum size is 5MB per file.');
+            return;
+        }
+    }
+    
+    // Check number of files
+    if (files.length > 3) {
+        e.preventDefault();
+        alert('Maximum 3 images allowed. Please select fewer files.');
+        return;
+    }
+});
+
+// Initialize carousels
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize all carousels
+    var carousels = document.querySelectorAll('.carousel');
+    carousels.forEach(function(carousel) {
+        new bootstrap.Carousel(carousel, {
+            interval: false // Disable auto-sliding
+        });
+    });
+    
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Add carousel indicators for better navigation
+function addCarouselIndicators() {
+    const carousels = document.querySelectorAll('.carousel');
+    carousels.forEach(carousel => {
+        if (carousel.querySelectorAll('.carousel-item').length > 1) {
+            const indicators = document.createElement('div');
+            indicators.className = 'carousel-indicators';
+            
+            const items = carousel.querySelectorAll('.carousel-item');
+            items.forEach((item, index) => {
+                const indicator = document.createElement('button');
+                indicator.type = 'button';
+                indicator.setAttribute('data-bs-target', `#${carousel.id}`);
+                indicator.setAttribute('data-bs-slide-to', index);
+                indicator.setAttribute('aria-label', `Slide ${index + 1}`);
+                if (index === 0) {
+                    indicator.className = 'active';
+                    indicator.setAttribute('aria-current', 'true');
+                }
+                indicators.appendChild(indicator);
+            });
+            
+            carousel.appendChild(indicators);
+        }
+    });
+}
+
+// Call this after DOM is loaded
+document.addEventListener('DOMContentLoaded', addCarouselIndicators);
+</script>
+{% endblock %}

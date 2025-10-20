@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="text-center">Register for CollegeCompanion</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Branch</label>
+                        <input type="text" class="form-control" name="branch" required>
+                    </div>
+                    
+                    <div class="mb-3" id="yearField">
+                        <label class="form-label">Year</label>
+                        <select class="form-select" name="year">
+                            <option value="">Select Year</option>
+                            <option value="1">1st Year</option>
+                            <option value="2">2nd Year</option>
+                            <option value="3">3rd Year</option>
+                            <option value="4">4th Year</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number</label>
+                        <input type="text" class="form-control" name="phone" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Select Role</label>
+                        <select class="form-select" name="role" id="roleSelect" required>
+                            <option value="">Choose role...</option>
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="secretCodeField" style="display: none;">
+                        <label class="form-label">Secret Code</label>
+                        <input type="text" class="form-control" name="secret_code" 
+                               placeholder="Enter teacher secret code">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">Register</button>
+                </form>
+                
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('login') }}">Already have an account? Login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const roleSelect = document.getElementById('roleSelect');
+        const yearField = document.getElementById('yearField');
+        const secretCodeField = document.getElementById('secretCodeField');
+        const yearSelect = yearField.querySelector('select[name="year"]');
+        const secretCodeInput = secretCodeField.querySelector('input[name="secret_code"]');
+        
+        function updateFormFields() {
+            if (roleSelect.value === 'teacher') {
+                // Hide year field for teachers
+                yearField.style.display = 'none';
+                yearSelect.required = false;
+                
+                // Show secret code field for teachers
+                secretCodeField.style.display = 'block';
+                secretCodeInput.required = true;
+            } else {
+                // Show year field for students
+                yearField.style.display = 'block';
+                yearSelect.required = true;
+                
+                // Hide secret code field for students
+                secretCodeField.style.display = 'none';
+                secretCodeInput.required = false;
+            }
+        }
+        
+        // Initial update
+        updateFormFields();
+        
+        // Update on role change
+        roleSelect.addEventListener('change', updateFormFields);
+    });
+</script>
+{% endblock %}
